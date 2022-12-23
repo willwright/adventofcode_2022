@@ -1,4 +1,8 @@
 <?php
+ini_set('memory_limit', '-1');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_WARNING);
+
+
 
 class Sensor {
     public $x;
@@ -11,6 +15,7 @@ class Beacon {
 }
 
 class Main {
+    const FREQUENCY = 4000000;
     public array $input = [];
 
     public array $map = [];
@@ -109,9 +114,7 @@ class Main {
         $count = 0;
         foreach ($this->map[$row] as $key => $value) {
             if (
-                $key >= $this->getLowerX($this->input) &&
-                $key <= $this->getUpperX($this->input) &&
-                !$this->isSensor($key, $row)
+                !$this->isBeacon($key, $row)
             ) {
                 $count++;
             }
@@ -162,11 +165,19 @@ class Main {
                 $yDisplacement = $i;
                 $xDisplacement = $distance - abs($i);
 
-                if (($sensor->y + $yDisplacement) != $searchRow) {
+//                if (($sensor->y + $yDisplacement) != $searchRow) {
+//                    continue;
+//                }
+
+                if (($sensor->y + $yDisplacement) < 0 || ($sensor->y + $yDisplacement) > 4000000) {
                     continue;
                 }
 
                 for ($j = -$xDisplacement; $j <= $xDisplacement; $j++) {
+                    if (($sensor->x + $j) < 0 || ($sensor->x + $j) > 4000000) {
+                        continue;
+                    }
+
                     if (isset($this->map[$sensor->y + $yDisplacement][$sensor->x + $j])) {
                         continue;
                     } else {
@@ -177,9 +188,35 @@ class Main {
         }
 
         $answer = $this->getNotPositionsForRow($searchRow);
-        echo sprintf("Answer is %s", $answer);
+        echo sprintf("Answer is %s", $answer) . PHP_EOL;
+
+        // PART2
+        //Loop over the graph inside the given search parameters
+        //If the map position is not set AND it is not a sensor or a beacon then report it out
+        //multiple by the frequncy and add the y coordinate
+        ksort($this->map);
+        $beaconX = 0;
+        $beaconY = 0;
+        for ($y = 0; $y <= 4000000; $y++) {
+            ksort($this->map[$y]);
+            for ($x = 0; $x <= 4000000; $x++) {
+                if (
+                    !isset($this->map[$y][$x])
+                    && !$this->isSensor($x,$y)
+                    && !$this->isBeacon($x,$y)
+                ) {
+                    echo sprintf("The distress beacon is at (X,Y): %s,%s", $x,$y) . PHP_EOL;
+                    $beaconX = $x;
+                    $beaconY = $y;
+                    break;
+                }
+            }
+        }
+
+        echo sprintf("The frequency is: %s", ($beaconX * self::FREQUENCY) + $beaconY) . PHP_EOL;
     }
 }
 
 $main = new Main();
+//$main->run('test.txt', 10);
 $main->run('input.txt', 2000000);
